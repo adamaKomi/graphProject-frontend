@@ -201,11 +201,9 @@ const MainPage = () => {
         setError(data.error);  // Afficher l'erreur reçue
         console.error(data.error);
       } 
-      // else {
-      //   //dispatch(setVisitedNodes(data));  // Mettre à jour les nœuds visités
-      //   // console.log("Nœuds visités :");
-      //   // console.log(visitedNodes);
-      // }
+      else {
+        console.log("Requête envoyé : " +algorithm+ " | points : "+clickedCells);
+      }
     };
 
     socket.onerror = (error) => {
