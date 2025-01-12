@@ -1,9 +1,7 @@
-// MainPage.js
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Labyrinthe from '../labyrinthe/Labyrinthe';
 import './MainPage.css';
-
 import {
   setMaze,
   setGraph,
@@ -18,10 +16,8 @@ const MainPage = () => {
   const dispatch = useDispatch();
   const algorithm = useSelector((state) => state.algorithm);
   const clickedCells = useSelector((state) => state.clickedCells);
-  const startSelectPoint = useSelector(state => state.startSelectPoint);
-  const [error, setError] = useState(null);  // État pour l'erreur
+  const [error, setError] = useState(null);
   const visitedNodes = useSelector(state => state.visitedNodes);
-
 
   const rows = 20;
   const cols = 20;
@@ -54,31 +50,27 @@ const MainPage = () => {
     return graph;
   };
 
-
-  const sendGraphToServer = (graph) => {
-
+  const connectWebSocket = () => {
     const socket = new WebSocket("ws://localhost:3002");
 
     socket.onopen = () => {
       console.log("Connexion WebSocket établie");
-
-      // Envoyer des données JSON représentant le graphe au serveur
-      const graphData = {
-        graph: graph,
-      };
-      socket.send(JSON.stringify(graphData));
     };
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.error) {
-        setError(data.error);  // Afficher l'erreur reçue
-        console.error(data.error);
-      } else {
-        dispatch(setVisitedNodes(data));  // Mettre à jour les nœuds visités
-        console.log("Nœuds visités :");
-        console.log(visitedNodes);
-
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          setError(data.error);
+          console.error(data.error);
+        } else {
+          // Mise à jour continue des nœuds visités
+          dispatch(setVisitedNodes(data));
+          console.log("Nœuds visités reçus du serveur :");
+          console.log(data);
+        }
+      } catch (err) {
+        console.error("Erreur de parsing JSON :", err);
       }
     };
 
@@ -90,66 +82,53 @@ const MainPage = () => {
       console.log("Connexion WebSocket fermée");
     };
 
-    return () => {
-      socket.close();  // Fermer la connexion WebSocket lorsque le composant est démonté
-    };
+    return socket;
   };
 
-  useEffect(() => {
-    let ws;
+  const sendGraphToServer = (graph) => {
+    const socket = connectWebSocket();
 
-    const connectWebSocket = () => {
-      // Établir une connexion WebSocket
-      ws = new WebSocket('ws://localhost:3002');
-
-      // Événement déclenché à l'ouverture de la connexion
-      ws.onopen = () => {
-        console.log('WebSocket connection opened');
-      };
-
-      // Événement déclenché lors de la réception d'un message
-      ws.onmessage = (event) => {
-        try {
-          // Parse le message reçu
-          const data = JSON.parse(event.data);
-          console.log('Visited nodes:', data);
-          dispatch(setVisitedNodes(data));
-        } catch (err) {
-          console.error('Error parsing message', err);
-        }
-      };
-
-      // Événement déclenché à la fermeture de la connexion
-      ws.onclose = (event) => {
-        console.log('WebSocket connection closed', event.code, event.reason);
-        // Tentative de reconnexion après un délai
-        setTimeout(() => {
-          console.log('Reconnecting...');
-          connectWebSocket();
-        }, 5000); // Reconnexion après 5 secondes
-      };
-
-      // Gestion des erreurs
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+    socket.onopen = () => {
+      const graphData = { graph: graph };
+      socket.send(JSON.stringify(graphData));
     };
 
-    connectWebSocket();
+    return socket; // Retourner la connexion pour pouvoir la réutiliser pour envoyer les points et l'algorithme
+  };
 
-    // Nettoyage de la connexion WebSocket à la fermeture du composant
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-    };
-  }, []);
-
-
-
+  const sendAlgorithmAndPoints = (socket) => {
+    if (algorithm === '') {
+      window.alert("Choisir un algorithme !!!");
+      return;
+    }
+    else if (clickedCells.length < 2) {
+      window.alert("Selectionner deux points !!!");
+      return;
+    }
+  
+    // Vérifier si le WebSocket est ouvert avant d'envoyer
+    if (socket.readyState === WebSocket.OPEN) {
+      const instructionData = {
+        algorithm: algorithm,
+        points: clickedCells,
+      };
+      socket.send(JSON.stringify(instructionData));
+      console.log("Requête envoyée : " + algorithm + " | points : " + clickedCells);
+    } else {
+      // Si la connexion n'est pas encore ouverte, attendre et réessayer d'envoyer
+      socket.onopen = () => {
+        const instructionData = {
+          algorithm: algorithm,
+          points: clickedCells,
+        };
+        socket.send(JSON.stringify(instructionData));
+        console.log("Requête envoyée : " + algorithm + " | points : " + clickedCells);
+      };
+    }
+  };
 
   const generateMaze = () => {
-    dispatch(setVisitedNodes([]))
+    dispatch(setVisitedNodes([]));
     const newMaze = Array(rows).fill().map(() => Array(cols).fill(0));
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
@@ -159,7 +138,7 @@ const MainPage = () => {
     dispatch(setMaze(newMaze));
     const newGraph = createGraph(newMaze);
     if (Object.keys(newGraph).length > 0) {
-      sendGraphToServer(newGraph);
+      sendGraphToServer(newGraph); // Envoyer le graphe au serveur
     }
     dispatch(setClickedCells([]));
   };
@@ -168,57 +147,11 @@ const MainPage = () => {
     dispatch(setAlgorithm(event.target.value));
   };
 
-  // const handleSelectPoint = () => {
-  //   dispatch(setSelectPoint());
-  // };
-
   const handleStartAnimation = () => {
-    if(algorithm===''){
-      window.alert("Choisir un algorithme !!!");
-      return;
-    }
-    else if(clickedCells.length<2){
-      window.alert("Selectionner deux points !!!");
-      return;
-    }
+    const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
 
-    const socket = new WebSocket("ws://localhost:3002");
-
-    socket.onopen = () => {
-      console.log("Connexion WebSocket établie");
-
-      // Envoyer des données JSON représentant le graphe au serveur
-      const instructionData = {
-        algorithm: algorithm,
-        points: clickedCells,
-      };
-      socket.send(JSON.stringify(instructionData));
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.error) {
-        setError(data.error);  // Afficher l'erreur reçue
-        console.error(data.error);
-      } 
-      else {
-        console.log("Requête envoyé : " +algorithm+ " | points : "+clickedCells);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error("Erreur WebSocket:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("Connexion WebSocket fermée");
-    };
-
-    return () => {
-      socket.close();  // Fermer la connexion WebSocket lorsque le composant est démonté
-    };
-  }
-
+    sendAlgorithmAndPoints(socket);  // Envoyer l'algorithme et les points au serveur
+  };
 
   return (
     <div className='main-page'>
@@ -239,11 +172,6 @@ const MainPage = () => {
               </select>
               <div className='parameters'>
                 <h3>Paramétrage</h3>
-                {/* {startSelectPoint ?
-                                    <button onClick={handleSelectPoint}>Arreter</button>
-                                    :
-                                    <button onClick={handleSelectPoint}>Choisir deux points</button>
-                                } */}
                 <button onClick={() => handleStartAnimation()} >Commencer</button>
               </div>
             </div>
@@ -252,7 +180,6 @@ const MainPage = () => {
       </div>
     </div>
   );
-
 };
 
 export default MainPage;
