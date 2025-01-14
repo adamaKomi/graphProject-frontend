@@ -6,6 +6,9 @@ import {
     setSelectPoint,
 } from '../../redux/actions';
 
+
+
+
 const Labyrinthe = () => {
 
     const dispatch = useDispatch();
@@ -13,6 +16,9 @@ const Labyrinthe = () => {
     const visitedNodes = useSelector((state)=>state.visitedNodes);
     const clickedCells = useSelector((state)=>state.clickedCells);
     const startSelectPoint = useSelector(state=>state.startSelectPoint);
+    const pathNodes = useSelector(state=>state.pathNodes);
+    const pathFound = useSelector(state=>state.pathFound);
+
 
     const handleClickMaze = (rowIndex, colIndex) => {
         
@@ -26,8 +32,10 @@ const Labyrinthe = () => {
             }
     };
 
+    
+
     return <>
-        <div className='labyrinthe-container'>
+        <div className={`labyrinthe-container ${pathFound?'pathFound':''}`}>
             <div className="labyrinthe">
                 {maze.map((row, rowIndex) => (
                     <div key={rowIndex} className="row">
@@ -36,8 +44,10 @@ const Labyrinthe = () => {
                             <div
                                 key={colIndex}
                                 className={`cell ${cell === 1 ? 'wall' : 'path'} 
-                                           ${visitedNodes.includes(`${rowIndex},${colIndex}`) ? 'green' : ''} 
-                                           ${cell !== 1 && clickedCells.includes(`${rowIndex},${colIndex}`) ? 'red' : ''}`}
+                                            ${cell !== 1 && clickedCells.includes(`${rowIndex},${colIndex}`) ? 'red' : ''}
+                                            ${visitedNodes.includes(`${rowIndex},${colIndex}`) ? 'green' : ''} 
+                                            ${pathNodes.includes(`${rowIndex},${colIndex}`) ? 'yellow' : ''}
+                                        `}
                                 onClick={() => `${cell===1? null :  handleClickMaze(rowIndex, colIndex)}`}
                             ></div>
                         ))}

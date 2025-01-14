@@ -6,21 +6,33 @@ import {
   setMaze,
   setGraph,
   setVisitedNodes,
+  setPathNodes,
   setAlgorithm,
   setClickedCells,
   resetMaze,
-  setSelectPoint
+  setSelectPoint,
+  setMazeHeight,
+  setMazeWidth,
+  setPathFound,
 } from '../../redux/actions';
+import AlgorithmSelector from '../AlgorithmSelector';
 
 const MainPage = () => {
   const dispatch = useDispatch();
+
   const algorithm = useSelector((state) => state.algorithm);
   const clickedCells = useSelector((state) => state.clickedCells);
-  const [error, setError] = useState(null);
   const visitedNodes = useSelector(state => state.visitedNodes);
+  const rows = useSelector(state => state.mazeHeight);
+  const cols = useSelector(state => state.mazeWidth);;
+  const pathNodes = useSelector(state=>state.pathNodes);
 
-  const rows = 20;
-  const cols = 20;
+  const [error, setError] = useState(null);
+  const [pathLengh, setPathLengh] = useState(0);
+
+
+
+
 
   const createGraph = (maze) => {
     let graph = {};
@@ -63,7 +75,14 @@ const MainPage = () => {
         if (data.error) {
           setError(data.error);
           console.error(data.error);
-        } else {
+        } else if (data.pathNodes) {
+          dispatch(setPathNodes(data.pathNodes));
+        } else if (data.pathFound) {
+          dispatch(setPathFound(true));
+        } else if (data.pathLengh) {
+          setPathLengh(parseInt(data.pathLengh));
+        }
+        else {
           // Mise à jour continue des nœuds visités
           dispatch(setVisitedNodes(data));
           console.log("Nœuds visités reçus du serveur :");
@@ -101,11 +120,15 @@ const MainPage = () => {
       window.alert("Choisir un algorithme !!!");
       return;
     }
-    else if (clickedCells.length < 2) {
+    else if ((algorithm==='A_STAR')&&(clickedCells.length < 2)) {
       window.alert("Selectionner deux points !!!");
       return;
     }
-  
+    else if (clickedCells.length < 1) {
+      window.alert("Selectionner au moins un point !!!");
+      return;
+    }
+
     // Vérifier si le WebSocket est ouvert avant d'envoyer
     if (socket.readyState === WebSocket.OPEN) {
       const instructionData = {
@@ -128,7 +151,11 @@ const MainPage = () => {
   };
 
   const generateMaze = () => {
+    // reinitialiser 
     dispatch(setVisitedNodes([]));
+    dispatch(setPathNodes([]));
+    dispatch(setPathFound(false));
+    setPathLengh(0);
     const newMaze = Array(rows).fill().map(() => Array(cols).fill(0));
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
@@ -143,40 +170,77 @@ const MainPage = () => {
     dispatch(setClickedCells([]));
   };
 
-  const handleSelectAlgorithm = (event) => {
-    dispatch(setAlgorithm(event.target.value));
-  };
+  
 
+  // pour commencer l'animation
   const handleStartAnimation = () => {
+    // reinitialiser 
+    dispatch(setVisitedNodes([]));
+    dispatch(setPathNodes([]));
+    dispatch(setPathFound(false));
+    setPathLengh(0);
     const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
 
     sendAlgorithmAndPoints(socket);  // Envoyer l'algorithme et les points au serveur
   };
 
+
+  const handleSetMazeWidth = (event) => {
+    const value = parseInt(event.target.value, 10);
+    if (value < 0) {
+      window.alert("Entrer un entier positif");
+      return;
+    } else {
+      dispatch(setMazeWidth(Math.max(value, 15)));
+    }
+  }
+
+
+  const handleSetMazeHeight = (event) => {
+    const value = parseInt(event.target.value, 10);
+    if (value < 0) {
+      window.alert("Entrer un entier positif");
+      return;
+    } else {
+      dispatch(setMazeHeight(Math.max(value, 10)));
+    }
+  }
+
+
   return (
     <div className='main-page'>
       <div className='main-page-container'>
-        <Labyrinthe />
-        <div className="right-side-bar">
-          <div className='right-container'>
+        <div className="main-page-container-item controls">
+          <div className='container '>
             <div className='menu'>
-              <div>
-                <button onClick={() => generateMaze()}>Générer un labyrinthe</button>
-                <button onClick={() => dispatch(resetMaze())}>Réinitialiser</button>
+              <div className='maze-controls' >
+                <button onClick={() => generateMaze()} className='generate-maze'>Générer un labyrinthe</button>
+                <button 
+                  onClick={() => { 
+                    dispatch(resetMaze()); 
+                    setPathLengh(0); } 
+                    }
+                    className='reset-maze'
+                  >Réinitialiser</button>
               </div>
-              <select onChange={handleSelectAlgorithm} value={algorithm}>
-                <option value="">Choisissez un algorithme</option>
-                <option value="DIJKSTRA">Dijkstra</option>
-                <option value="BFS">BFS</option>
-                <option value="DFS">DFS</option>
-              </select>
+              {/*  liste des algorithmes */}
+              <AlgorithmSelector />
               <div className='parameters'>
-                <h3>Paramétrage</h3>
                 <button onClick={() => handleStartAnimation()} >Commencer</button>
               </div>
             </div>
           </div>
         </div>
+        {/* Afficher la longueur du chemin */}
+        {/* {pathLengh>0 && ( */}
+        <div className='info-path'>
+          <h4 className='pathLengh'>Informations</h4>
+          <p>Algorithme : <strong>{algorithm.length>0?algorithm:'None'}</strong></p>
+          <p>Noeuds visités : <strong>{visitedNodes.length}</strong></p>
+          <p>Longueur chemin : <strong>{pathNodes.length}</strong></p>
+        </div>
+        {/* )} */}
+        <Labyrinthe className="main-page-container-item" />
       </div>
     </div>
   );
