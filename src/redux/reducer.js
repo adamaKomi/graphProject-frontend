@@ -1,15 +1,20 @@
 // reducer.js
+import { createGraph } from "../components/functions/createGraph";
+
+const rows = 20;
+const cols = 70;
 
 
-const initialMaze = Array(70).fill().map(() => Array(20).fill(0));
+const initialMaze = Array(rows).fill().map(() => Array(cols).fill(0));
 
-console.log("Hello :  " + initialMaze);
+const initialGraph = createGraph(initialMaze);
+
 
 const initialState = {
-    maze: [initialMaze],
-    mazeWidth: 72,
-    mazeHeight: 20,
-    graph: {},
+    maze: initialMaze,
+    mazeWidth: cols,
+    mazeHeight: rows,
+    graph: initialGraph,
     visitedNodes: [],
     pathNodes: [],
     algorithm: '',
@@ -25,7 +30,8 @@ const reducer = (state = initialState, action) => {
         case 'SET_MAZE':
             return { ...state, maze: action.payload };
         case 'SET_GRAPH':
-            return { ...state, graph: action.payload };
+            const newGraph = createGraph(action.payload);
+            return { ...state, graph: newGraph };
         case 'SET_VISITED_NODES':
             return { ...state, visitedNodes: action.payload };
         case 'SET_PATH_NODES':

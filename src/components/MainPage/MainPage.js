@@ -7,15 +7,12 @@ import {
   setGraph,
   setVisitedNodes,
   setPathNodes,
-  setAlgorithm,
   setClickedCells,
   resetMaze,
-  setSelectPoint,
-  setMazeHeight,
-  setMazeWidth,
   setPathFound,
 } from '../../redux/actions';
 import AlgorithmSelector from '../AlgorithmSelector';
+import { createGraph } from '../../components/functions/createGraph';
 
 const MainPage = () => {
   const dispatch = useDispatch();
@@ -23,44 +20,18 @@ const MainPage = () => {
   const algorithm = useSelector((state) => state.algorithm);
   const clickedCells = useSelector((state) => state.clickedCells);
   const visitedNodes = useSelector(state => state.visitedNodes);
-  const rows = useSelector(state => state.mazeHeight);
-  const cols = useSelector(state => state.mazeWidth);;
+  const rows = useSelector((state) => state.mazeHeight);
+  const cols = useSelector((state) => state.mazeWidth);
   const pathNodes = useSelector(state=>state.pathNodes);
+  const graph = useSelector(state=>state.graph);
 
   const [error, setError] = useState(null);
   const [pathLengh, setPathLengh] = useState(0);
 
+  useEffect(() => {
+    sendGraphToServer(graph);
+  },[]);
 
-
-
-
-  const createGraph = (maze) => {
-    let graph = {};
-    const getNeighbors = (i, j) => {
-      const neighbors = [];
-      if (i > 0 && maze[i - 1][j] === 0) neighbors.push([i - 1, j]); // Haut
-      if (i < rows - 1 && maze[i + 1][j] === 0) neighbors.push([i + 1, j]); // Bas
-      if (j > 0 && maze[i][j - 1] === 0) neighbors.push([i, j - 1]); // Gauche
-      if (j < cols - 1 && maze[i][j + 1] === 0) neighbors.push([i, j + 1]); // Droite
-      return neighbors;
-    };
-
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        if (maze[i][j] === 0) {
-          const node = `${i},${j}`;
-          graph[node] = [];
-          const neighbors = getNeighbors(i, j);
-          neighbors.forEach(neighbor => {
-            const neighborNode = `${neighbor[0]},${neighbor[1]}`;
-            graph[node].push(neighborNode);
-          });
-        }
-      }
-    }
-
-    return graph;
-  };
 
   const connectWebSocket = () => {
     const socket = new WebSocket("ws://localhost:3002");
@@ -82,9 +53,9 @@ const MainPage = () => {
         } else if (data.pathLengh) {
           setPathLengh(parseInt(data.pathLengh));
         }
-        else {
+        else if(data.visitedNodes) {
           // Mise à jour continue des nœuds visités
-          dispatch(setVisitedNodes(data));
+          dispatch(setVisitedNodes(data.visitedNodes));
           console.log("Nœuds visités reçus du serveur :");
           console.log(data);
         }
@@ -185,27 +156,14 @@ const MainPage = () => {
   };
 
 
-  const handleSetMazeWidth = (event) => {
-    const value = parseInt(event.target.value, 10);
-    if (value < 0) {
-      window.alert("Entrer un entier positif");
-      return;
-    } else {
-      dispatch(setMazeWidth(Math.max(value, 15)));
-    }
-  }
-
-
-  const handleSetMazeHeight = (event) => {
-    const value = parseInt(event.target.value, 10);
-    if (value < 0) {
-      window.alert("Entrer un entier positif");
-      return;
-    } else {
-      dispatch(setMazeHeight(Math.max(value, 10)));
-    }
-  }
-
+  // pour reinitialiser le labyrinthe
+const handleResetMaze = () => {
+  const newMaze = Array(rows).fill().map(() => Array(cols).fill(0));
+  dispatch(setGraph(newMaze));
+  sendGraphToServer(graph);
+  dispatch(resetMaze());
+  setPathLengh(0);
+}
 
   return (
     <div className='main-page'>
@@ -215,17 +173,20 @@ const MainPage = () => {
             <div className='menu'>
               <div className='maze-controls' >
                 <button onClick={() => generateMaze()} className='generate-maze'>Générer un labyrinthe</button>
-                <button 
-                  onClick={() => { 
-                    dispatch(resetMaze()); 
-                    setPathLengh(0); } 
-                    }
-                    className='reset-maze'
-                  >Réinitialiser</button>
+                <button
+                  onClick={() => { handleResetMaze() }}
+                  className='red'
+                >
+                  Réinitialiser
+                </button>
               </div>
               {/*  liste des algorithmes */}
               <AlgorithmSelector />
               <div className='parameters'>
+                {/* {startAnimation?
+                  <button onClick={() => handleCancelAnimation()} className='red' >Annuler</button>:
+                  <button onClick={() => handleStartAnimation()} >Commencer</button>
+                  } */}
                 <button onClick={() => handleStartAnimation()} >Commencer</button>
               </div>
             </div>
@@ -235,7 +196,7 @@ const MainPage = () => {
         {/* {pathLengh>0 && ( */}
         <div className='info-path'>
           <h4 className='pathLengh'>Informations</h4>
-          <p>Algorithme : <strong>{algorithm.length>0?algorithm:'None'}</strong></p>
+          <p>Algorithme : <strong>{algorithm.length > 0 ? algorithm : 'None'}</strong></p>
           <p>Noeuds visités : <strong>{visitedNodes.length}</strong></p>
           <p>Longueur chemin : <strong>{pathNodes.length}</strong></p>
         </div>

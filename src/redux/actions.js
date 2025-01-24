@@ -4,9 +4,9 @@ export const setMaze = (maze) => ({
     payload: maze,
 });
 
-export const setGraph = (graph) => ({
+export const setGraph = (maze) => ({
     type: 'SET_GRAPH',
-    payload: graph,
+    payload: maze,
 });
 
 export const setVisitedNodes = (nodes) => ({
