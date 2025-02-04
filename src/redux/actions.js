@@ -58,3 +58,8 @@ export const setPathFound = (statement)=>({
     type: 'SET_PATH_FOUND',
     payload: statement,
 })
+
+export const setStartAnimation = (statement)=>({
+    type: 'SET_START_ANIMATION',
+    payload: statement,
+})

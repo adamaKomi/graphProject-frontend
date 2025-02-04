@@ -18,9 +18,10 @@ const initialState = {
     visitedNodes: [],
     pathNodes: [],
     algorithm: '',
-    clickedCells: [],
+    clickedCells: ["",""],
     startSelectPoint: false,
     pathFound: false,
+    startAnimation: false,
 };
 
 
@@ -53,6 +54,8 @@ const reducer = (state = initialState, action) => {
             return { ...state, mazeHeight: action.payload};
         case 'SET_PATH_FOUND':
             return { ...state, pathFound: action.payload};
+        case 'SET_START_ANIMATION':
+            return { ...state, startAnimation: action.payload};
         default:
             return state;
     }

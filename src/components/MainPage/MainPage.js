@@ -10,6 +10,7 @@ import {
   setClickedCells,
   resetMaze,
   setPathFound,
+  setStartAnimation,
 } from '../../redux/actions';
 import AlgorithmSelector from '../AlgorithmSelector';
 import { createGraph } from '../../components/functions/createGraph';
@@ -24,6 +25,7 @@ const MainPage = () => {
   const cols = useSelector((state) => state.mazeWidth);
   const pathNodes = useSelector(state=>state.pathNodes);
   const graph = useSelector(state=>state.graph);
+  const startAnimation = useSelector(state=>state.startAnimation);
 
   const [error, setError] = useState(null);
   const [pathLengh, setPathLengh] = useState(0);
@@ -56,8 +58,6 @@ const MainPage = () => {
         else if(data.visitedNodes) {
           // Mise à jour continue des nœuds visités
           dispatch(setVisitedNodes(data.visitedNodes));
-          console.log("Nœuds visités reçus du serveur :");
-          console.log(data);
         }
       } catch (err) {
         console.error("Erreur de parsing JSON :", err);
@@ -107,7 +107,6 @@ const MainPage = () => {
         points: clickedCells,
       };
       socket.send(JSON.stringify(instructionData));
-      console.log("Requête envoyée : " + algorithm + " | points : " + clickedCells);
     } else {
       // Si la connexion n'est pas encore ouverte, attendre et réessayer d'envoyer
       socket.onopen = () => {
@@ -116,7 +115,6 @@ const MainPage = () => {
           points: clickedCells,
         };
         socket.send(JSON.stringify(instructionData));
-        console.log("Requête envoyée : " + algorithm + " | points : " + clickedCells);
       };
     }
   };
@@ -153,8 +151,23 @@ const MainPage = () => {
     const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
 
     sendAlgorithmAndPoints(socket);  // Envoyer l'algorithme et les points au serveur
+    dispatch(setStartAnimation(true));
   };
-
+  
+  const handleCancelAnimation = () => {
+    const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
+    // Envoyer une instruction pour annuler l'animation
+    // const cancelData = { stop: true };
+    // if(socket.readyState === WebSocket.OPEN){
+    //   socket.send(JSON.stringify(cancelData));
+    // }else{
+    //   socket.onopen = () => {
+    //     socket.send(JSON.stringify(cancelData));
+    //   };
+    // }
+    socket.close();  // Fermer la connexion WebSocket
+    dispatch(setStartAnimation(false));
+  }
 
   // pour reinitialiser le labyrinthe
 const handleResetMaze = () => {
@@ -183,11 +196,10 @@ const handleResetMaze = () => {
               {/*  liste des algorithmes */}
               <AlgorithmSelector />
               <div className='parameters'>
-                {/* {startAnimation?
+              {startAnimation?
                   <button onClick={() => handleCancelAnimation()} className='red' >Annuler</button>:
                   <button onClick={() => handleStartAnimation()} >Commencer</button>
-                  } */}
-                <button onClick={() => handleStartAnimation()} >Commencer</button>
+                }
               </div>
             </div>
           </div>
