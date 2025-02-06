@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import MainPage from './components/MainPage/MainPage';
 
 function App() {
@@ -10,5 +9,3 @@ function App() {
 }
 
 export default App;
-
-

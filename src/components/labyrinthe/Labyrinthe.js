@@ -10,16 +10,16 @@ import {
 const Labyrinthe = () => {
 
     const dispatch = useDispatch();
-    const maze = useSelector((state)=>state.maze);
-    const visitedNodes = useSelector((state)=>state.visitedNodes);
-    const clickedCells = useSelector((state)=>state.clickedCells);
-    const pathNodes = useSelector(state=>state.pathNodes);
-    const pathFound = useSelector(state=>state.pathFound);
+    const maze = useSelector((state) => state.maze);
+    const visitedNodes = useSelector((state) => state.visitedNodes);
+    const clickedCells = useSelector((state) => state.clickedCells);
+    const pathNodes = useSelector(state => state.pathNodes);
+    const pathFound = useSelector(state => state.pathFound);
 
 
     const handleClickMaze = (rowIndex, colIndex) => {
-        
-             // selectionner la cellule
+
+        // selectionner la cellule
         if (!clickedCells.includes(`${rowIndex},${colIndex}`)) {
             if( clickedCells[0] === ""){
                 const secondeClickedCell = clickedCells[1];
@@ -46,12 +46,13 @@ const Labyrinthe = () => {
     
 
     return <>
-        <div className={`labyrinthe-container ${pathFound?'pathFound':''}`}>
+        <div className={`labyrinthe-container ${pathFound ? 'pathFound' : ''}`}>
             <div className="labyrinthe">
                 {maze.map((row, rowIndex) => (
                     <div key={rowIndex} className="row">
                         {row.map((cell, colIndex) => (
-                            
+
+                            // ${cell !== 1 && clickedCells.includes(`${rowIndex},${colIndex}`) ? 'red' : ''}
                             <div
                                 key={colIndex}
                                 className={`cell ${cell === 1 ? 'wall' : 'path'} 

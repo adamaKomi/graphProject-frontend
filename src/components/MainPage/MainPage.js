@@ -4,7 +4,6 @@ import Labyrinthe from '../labyrinthe/Labyrinthe';
 import './MainPage.css';
 import {
   setMaze,
-  setGraph,
   setVisitedNodes,
   setPathNodes,
   setClickedCells,
@@ -119,12 +118,17 @@ const MainPage = () => {
     }
   };
 
-  const generateMaze = () => {
+  const reinitialiser = () =>{
     // reinitialiser 
     dispatch(setVisitedNodes([]));
     dispatch(setPathNodes([]));
     dispatch(setPathFound(false));
     setPathLengh(0);
+  }
+
+  const generateMaze = () => {
+     // reinitialiser 
+    reinitialiser();
     const newMaze = Array(rows).fill().map(() => Array(cols).fill(0));
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
@@ -136,7 +140,7 @@ const MainPage = () => {
     if (Object.keys(newGraph).length > 0) {
       sendGraphToServer(newGraph); // Envoyer le graphe au serveur
     }
-    dispatch(setClickedCells([]));
+    dispatch(setClickedCells(["",""]));
   };
 
   
@@ -144,10 +148,7 @@ const MainPage = () => {
   // pour commencer l'animation
   const handleStartAnimation = () => {
     // reinitialiser 
-    dispatch(setVisitedNodes([]));
-    dispatch(setPathNodes([]));
-    dispatch(setPathFound(false));
-    setPathLengh(0);
+    reinitialiser();
     const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
 
     sendAlgorithmAndPoints(socket);  // Envoyer l'algorithme et les points au serveur
@@ -157,27 +158,27 @@ const MainPage = () => {
   const handleCancelAnimation = () => {
     const socket = connectWebSocket();  // Créer une nouvelle connexion WebSocket
     // Envoyer une instruction pour annuler l'animation
-    // const cancelData = { stop: true };
-    // if(socket.readyState === WebSocket.OPEN){
-    //   socket.send(JSON.stringify(cancelData));
-    // }else{
-    //   socket.onopen = () => {
-    //     socket.send(JSON.stringify(cancelData));
-    //   };
-    // }
-    socket.close();  // Fermer la connexion WebSocket
+    const cancelData = { stop: true };
+    if(socket.readyState === WebSocket.OPEN){
+      socket.send(JSON.stringify(cancelData));
+    }else{
+      socket.onopen = () => {
+        socket.send(JSON.stringify(cancelData));
+      };
+    }
     dispatch(setStartAnimation(false));
   }
 
   // pour reinitialiser le labyrinthe
-const handleResetMaze = () => {
-  const newMaze = Array(rows).fill().map(() => Array(cols).fill(0));
-  dispatch(setGraph(newMaze));
-  sendGraphToServer(graph);
-  dispatch(resetMaze());
-  setPathLengh(0);
-}
-
+  const handleResetMaze = () => {
+    dispatch(resetMaze());
+    // attendre 0.1 seconde avant d'envoyer le graphe
+    setTimeout(() => {
+      sendGraphToServer(graph);
+    }, 100);
+  
+  }
+  
   return (
     <div className='main-page'>
       <div className='main-page-container'>
@@ -196,10 +197,10 @@ const handleResetMaze = () => {
               {/*  liste des algorithmes */}
               <AlgorithmSelector />
               <div className='parameters'>
-              {startAnimation?
-                  <button onClick={() => handleCancelAnimation()} className='red' >Annuler</button>:
+              {/* {startAnimation?
+                  <button onClick={() => handleCancelAnimation()} className='red' >Annuler</button>: */}
                   <button onClick={() => handleStartAnimation()} >Commencer</button>
-                }
+                {/* } */}
               </div>
             </div>
           </div>
